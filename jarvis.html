@@ -1,0 +1,410 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Jarvis Multi Planet</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+body{
+    overflow:hidden;
+    background:radial-gradient(circle at center,#061f38,#010713 60%,#000);
+    font-family:Arial;
+}
+#video{
+    position:fixed;
+    right:18px;
+    bottom:18px;
+    width:220px;
+    border-radius:18px;
+    transform:scaleX(-1);
+    opacity:.25;
+    border:1px solid #00eaff;
+    box-shadow:0 0 25px #00eaff55;
+    z-index:10;
+}
+#hud{
+    position:fixed;
+    top:20px;
+    left:20px;
+    color:#bdf8ff;
+    z-index:20;
+    padding:18px;
+    border:1px solid #00eaff77;
+    border-radius:18px;
+    background:#00152266;
+    backdrop-filter:blur(10px);
+}
+#status{
+    position:fixed;
+    top:20px;
+    right:20px;
+    color:#00ffcc;
+    z-index:20;
+    padding:12px 18px;
+    border:1px solid #00eaff66;
+    border-radius:15px;
+    background:#00152277;
+}
+h1{color:#00eaff;margin-bottom:10px}
+</style>
+</head>
+<body>
+
+<div id="hud">
+    <h1>JARVIS SYSTEM</h1>
+    <p>☝️ ангушт рост = планетаи дигар</p>
+    <p>☝️ ангушт чап = планетаи пешина</p>
+    <p>🤏 2 ангушт = тоб додан</p>
+    <p>✊ мушт = дохил + пароканда</p>
+</div>
+
+<div id="status">CAMERA...</div>
+<video id="video" autoplay playsinline></video>
+
+<script src="https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@mediapipe/hands/hands.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@mediapipe/camera_utils/camera_utils.js"></script>
+
+<script>
+let scene = new THREE.Scene()
+
+let camera3d = new THREE.PerspectiveCamera(75,innerWidth/innerHeight,0.01,1000)
+camera3d.position.set(0,0,7)
+
+let renderer = new THREE.WebGLRenderer({antialias:true,alpha:true})
+renderer.setSize(innerWidth,innerHeight)
+renderer.setPixelRatio(1)
+document.body.appendChild(renderer.domElement)
+
+let video = document.getElementById("video")
+let statusBox = document.getElementById("status")
+
+let system = new THREE.Group()
+scene.add(system)
+
+let planets = []
+let currentPlanet = 0
+let targetSystemX = 0
+
+function createPlanet(x,color,size,ring=false){
+    let group = new THREE.Group()
+    group.position.x = x
+    system.add(group)
+
+    let count = 18000
+    let base = new Float32Array(count * 3)
+    let pos = new Float32Array(count * 3)
+    let col = new Float32Array(count * 3)
+
+    for(let i=0;i<count;i++){
+        let a = Math.random() * Math.PI * 2
+        let b = Math.acos(2 * Math.random() - 1)
+        let r = size + Math.random() * .25
+
+        let px = r * Math.sin(b) * Math.cos(a)
+        let py = r * Math.sin(b) * Math.sin(a)
+        let pz = r * Math.cos(b)
+
+        base[i*3] = px
+        base[i*3+1] = py
+        base[i*3+2] = pz
+
+        pos[i*3] = px
+        pos[i*3+1] = py
+        pos[i*3+2] = pz
+
+        col[i*3] = color[0]
+        col[i*3+1] = color[1]
+        col[i*3+2] = color[2]
+    }
+
+    let geo = new THREE.BufferGeometry()
+    geo.setAttribute("position",new THREE.BufferAttribute(pos,3))
+    geo.setAttribute("color",new THREE.BufferAttribute(col,3))
+
+    let mat = new THREE.PointsMaterial({
+        size:.03,
+        vertexColors:true,
+        transparent:true,
+        depthWrite:false,
+        blending:THREE.AdditiveBlending
+    })
+
+    let points = new THREE.Points(geo,mat)
+    group.add(points)
+
+    let glow = new THREE.Mesh(
+        new THREE.SphereGeometry(size+.35,64,64),
+        new THREE.MeshBasicMaterial({
+            color:new THREE.Color(color[0],color[1],color[2]),
+            transparent:true,
+            opacity:.1,
+            blending:THREE.AdditiveBlending
+        })
+    )
+    group.add(glow)
+
+    let ringObj = null
+    let ringBase = null
+
+    if(ring){
+        let dots = 9000
+        let ringPos = new Float32Array(dots * 3)
+        let ringCol = new Float32Array(dots * 3)
+
+        for(let i=0;i<dots;i++){
+            let a = Math.random() * Math.PI * 2
+            let rr = size + 1.35 + (Math.random()-.5) * .18
+            let h = (Math.random()-.5) * .05
+
+            ringPos[i*3] = Math.cos(a) * rr
+            ringPos[i*3+1] = Math.sin(a) * rr
+            ringPos[i*3+2] = h
+
+            ringCol[i*3] = color[0]
+            ringCol[i*3+1] = color[1]
+            ringCol[i*3+2] = color[2]
+        }
+
+        let rg = new THREE.BufferGeometry()
+        rg.setAttribute("position",new THREE.BufferAttribute(ringPos,3))
+        rg.setAttribute("color",new THREE.BufferAttribute(ringCol,3))
+
+        let rm = new THREE.PointsMaterial({
+            size:.035,
+            vertexColors:true,
+            transparent:true,
+            opacity:.9,
+            depthWrite:false,
+            blending:THREE.AdditiveBlending
+        })
+
+        ringObj = new THREE.Points(rg,rm)
+        ringObj.rotation.x = 1.2
+        ringObj.rotation.y = .15
+        group.add(ringObj)
+
+        ringBase = ringObj.geometry.attributes.position.array.slice()
+    }
+
+    return {group,points,geo,mat,base,count,glow,ringObj,ringBase}
+}
+
+planets.push(createPlanet(-18,[.05,.75,1],2.05,true))
+planets.push(createPlanet(-6,[1,.25,.15],1.8,false))
+planets.push(createPlanet(6,[.75,.2,1],1.9,true))
+planets.push(createPlanet(18,[.2,1,.45],1.75,false))
+
+let starsGeo = new THREE.BufferGeometry()
+let starsPos = new Float32Array(4000 * 3)
+
+for(let i=0;i<4000;i++){
+    starsPos[i*3] = (Math.random()-.5)*100
+    starsPos[i*3+1] = (Math.random()-.5)*100
+    starsPos[i*3+2] = (Math.random()-.5)*100
+}
+
+starsGeo.setAttribute("position",new THREE.BufferAttribute(starsPos,3))
+
+let stars = new THREE.Points(
+    starsGeo,
+    new THREE.PointsMaterial({
+        color:0x88ddff,
+        size:.035,
+        transparent:true,
+        opacity:.65,
+        blending:THREE.AdditiveBlending
+    })
+)
+scene.add(stars)
+
+let grab = false
+let grabStartX = 0
+let grabStartY = 0
+let speedX = 0
+let speedY = 0
+let targetSpeedX = 0
+let targetSpeedY = 0
+let fist = 0
+let targetFist = 0
+let explodePower = 0
+let pinchPower = 0
+let gestureLock = false
+
+function distance(a,b){
+    let x = a.x - b.x
+    let y = a.y - b.y
+    return Math.sqrt(x*x+y*y)
+}
+
+function changePlanet(dir){
+    currentPlanet += dir
+    if(currentPlanet < 0) currentPlanet = planets.length - 1
+    if(currentPlanet >= planets.length) currentPlanet = 0
+    targetSystemX = -planets[currentPlanet].group.position.x
+}
+
+function animate(){
+    requestAnimationFrame(animate)
+
+    system.position.x += (targetSystemX - system.position.x) * .06
+
+    speedX += (targetSpeedX - speedX) * .18
+    speedY += (targetSpeedY - speedY) * .18
+
+    if(!grab){
+        targetSpeedX *= .94
+        targetSpeedY *= .94
+    }
+
+    fist += (targetFist - fist) * .12
+    explodePower += (fist - explodePower) * .08
+
+    for(let p of planets){
+        p.group.rotation.y += .004 + speedX
+        p.group.rotation.x += speedY
+
+        let arr = p.geo.attributes.position.array
+        let power = 1 + explodePower * 3.1
+
+        for(let i=0;i<p.count;i++){
+            arr[i*3] = p.base[i*3] * power
+            arr[i*3+1] = p.base[i*3+1] * power
+            arr[i*3+2] = p.base[i*3+2] * power
+        }
+
+        p.geo.attributes.position.needsUpdate = true
+
+        p.mat.size = grab ? .045 : .03 + fist * .012
+        p.glow.material.opacity = .1 + fist * .25
+
+        if(p.ringObj){
+            p.ringObj.rotation.z += .012 + Math.abs(speedX) * .8
+
+            let ringArr = p.ringObj.geometry.attributes.position.array
+            let ringPower = 1 + explodePower * 5
+
+            for(let i=0;i<ringArr.length/3;i++){
+                ringArr[i*3] = p.ringBase[i*3] * ringPower
+                ringArr[i*3+1] = p.ringBase[i*3+1] * ringPower
+                ringArr[i*3+2] = p.ringBase[i*3+2] * ringPower
+            }
+
+            p.ringObj.geometry.attributes.position.needsUpdate = true
+        }
+    }
+
+    stars.rotation.y += .0007
+
+    let zoom = 7 - fist * 5.3 - pinchPower * 1.4
+    camera3d.position.z += (zoom - camera3d.position.z) * .09
+
+    renderer.render(scene,camera3d)
+}
+animate()
+
+let hands = new Hands({
+    locateFile:file => `https://cdn.jsdelivr.net/npm/@mediapipe/hands/${file}`
+})
+
+hands.setOptions({
+    maxNumHands:1,
+    modelComplexity:1,
+    minDetectionConfidence:.75,
+    minTrackingConfidence:.75
+})
+
+hands.onResults(res=>{
+    if(res.multiHandLandmarks && res.multiHandLandmarks.length > 0){
+        statusBox.innerText = "HAND DETECTED"
+
+        let h = res.multiHandLandmarks[0]
+        let wrist = h[0]
+        let thumb = h[4]
+        let index = h[8]
+        let middle = h[12]
+        let ringFinger = h[16]
+        let pinky = h[20]
+        let palm = h[9]
+
+        let pinch = distance(thumb,index)
+        let nowGrab = pinch < .10
+
+        if(nowGrab && !grab){
+            grabStartX = index.x
+            grabStartY = index.y
+        }
+
+        grab = nowGrab
+
+        if(grab){
+            let moveX = index.x - grabStartX
+            let moveY = index.y - grabStartY
+
+            targetSpeedX = moveX * 2.4
+            targetSpeedY = moveY * 1.5
+            pinchPower = Math.max(0,Math.min(1,1 - pinch * 7))
+
+            statusBox.innerText = "GRABBING"
+        }else{
+            pinchPower = 0
+
+            let swipe = index.x - wrist.x
+
+            if(swipe > .35 && !gestureLock){
+                changePlanet(1)
+                gestureLock = true
+                statusBox.innerText = "NEXT PLANET"
+            }
+
+            if(swipe < -.35 && !gestureLock){
+                changePlanet(-1)
+                gestureLock = true
+                statusBox.innerText = "PREV PLANET"
+            }
+
+            if(Math.abs(swipe) < .15){
+                gestureLock = false
+            }
+        }
+
+        let d1 = distance(index,palm)
+        let d2 = distance(middle,palm)
+        let d3 = distance(ringFinger,palm)
+        let d4 = distance(pinky,palm)
+
+        let avg = (d1+d2+d3+d4)/4
+        targetFist = avg < .38 ? 1 : 0
+    }else{
+        statusBox.innerText = "SHOW YOUR HAND"
+        grab = false
+        targetFist = 0
+        pinchPower = 0
+        targetSpeedX = 0
+        targetSpeedY = 0
+    }
+})
+
+let cam = new Camera(video,{
+    onFrame:async()=>{
+        await hands.send({image:video})
+    },
+    width:1280,
+    height:720
+})
+
+cam.start().then(()=>{
+    statusBox.innerText = "CAMERA READY"
+}).catch(()=>{
+    statusBox.innerText = "CAMERA ERROR"
+})
+
+addEventListener("resize",()=>{
+    camera3d.aspect = innerWidth/innerHeight
+    camera3d.updateProjectionMatrix()
+    renderer.setSize(innerWidth,innerHeight)
+})
+</script>
+
+</body>
+</html>

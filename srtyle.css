@@ -1,0 +1,141 @@
+*{
+    margin:0;
+    padding:0;
+    box-sizing:border-box;
+}
+
+html,
+body{
+    width:100%;
+    height:100%;
+    overflow:hidden;
+    background:
+        radial-gradient(circle at center,#0a2340 0%,#04101d 40%,#000 100%);
+    font-family:Arial, Helvetica, sans-serif;
+}
+
+canvas{
+    position:fixed;
+    inset:0;
+    z-index:1;
+}
+
+#video{
+    position:fixed;
+    right:20px;
+    bottom:20px;
+    width:240px;
+    border-radius:20px;
+    transform:scaleX(-1);
+    opacity:.35;
+    border:1px solid rgba(0,255,255,.4);
+    box-shadow:
+        0 0 20px rgba(0,255,255,.3),
+        0 0 40px rgba(0,255,255,.15);
+    z-index:10;
+}
+
+#hud{
+    position:fixed;
+    left:25px;
+    top:25px;
+    z-index:20;
+    color:#9eefff;
+    padding:18px;
+    min-width:260px;
+
+    background:rgba(0,15,25,.25);
+    backdrop-filter:blur(10px);
+
+    border:1px solid rgba(0,255,255,.3);
+    border-radius:18px;
+
+    box-shadow:
+        0 0 25px rgba(0,255,255,.15),
+        inset 0 0 15px rgba(0,255,255,.08);
+}
+
+#hud h1{
+    color:#00e5ff;
+    font-size:28px;
+    margin-bottom:12px;
+    letter-spacing:3px;
+
+    text-shadow:
+        0 0 10px #00e5ff,
+        0 0 20px #00e5ff;
+}
+
+#hud p{
+    margin:8px 0;
+    font-size:15px;
+    color:#c8f8ff;
+}
+
+#status{
+    position:fixed;
+    top:25px;
+    right:25px;
+
+    z-index:20;
+
+    color:#00ffff;
+    font-size:15px;
+    letter-spacing:2px;
+
+    padding:12px 18px;
+
+    border-radius:15px;
+
+    background:rgba(0,20,35,.35);
+    border:1px solid rgba(0,255,255,.3);
+
+    box-shadow:
+        0 0 20px rgba(0,255,255,.2);
+}
+
+#status::before{
+    content:"● ";
+    color:#00ff99;
+    animation:pulse 1s infinite;
+}
+
+@keyframes pulse{
+    0%{
+        opacity:1;
+    }
+    50%{
+        opacity:.3;
+    }
+    100%{
+        opacity:1;
+    }
+}
+
+#hud::before{
+    content:"";
+    position:absolute;
+    top:-1px;
+    left:-1px;
+    width:40px;
+    height:40px;
+
+    border-top:2px solid #00ffff;
+    border-left:2px solid #00ffff;
+
+    border-top-left-radius:18px;
+}
+
+#hud::after{
+    content:"";
+    position:absolute;
+    right:-1px;
+    bottom:-1px;
+    width:40px;
+    height:40px;
+
+    border-right:2px solid #00ffff;
+    border-bottom:2px solid #00ffff;
+
+    border-bottom-right-radius:18px;
+}
